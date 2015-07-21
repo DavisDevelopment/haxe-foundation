@@ -11,6 +11,8 @@ import tannus.geom.Point;
 import tannus.html.Element;
 import tannus.html.Win;
 
+import Std.*;
+
 class Widget extends EventDispatcher implements Destructible {
 	/* Constructor Function */
 	public function new():Void {
@@ -48,6 +50,32 @@ class Widget extends EventDispatcher implements Destructible {
 		};
 	}
 
+	/**
+	  * Append [this] Widget to something
+	  */
+	public function appendTo(parent : Dynamic):Void {
+		if (is(parent, Widget)) {
+			cast(parent, Widget).append( this );
+		}
+		else {
+			var par:Element = new Element(parent);
+			par.append( el );
+		}
+	}
+
+	/**
+	  * Append something to [this] Widget
+	  */
+	public function append(child : Dynamic):Void {
+		if (is(child, Widget)) {
+			el.append(cast(child, Widget).el);
+		}
+		else {
+			var kid:Element = new Element( child );
+			el.append( kid );
+		}
+	}
+
 /* === Computed Instace Fields === */
 
 	/**
@@ -55,6 +83,13 @@ class Widget extends EventDispatcher implements Destructible {
 	  */
 	private var doc(get, never):Element;
 	private inline function get_doc() return new Element(Win.current.document);
+
+	/**
+	  * The textual content of [this] Widget
+	  */
+	public var text(get, set) : String;
+	private inline function get_text() return el.text;
+	private inline function set_text(nt : String) return (el.text = nt);
 
 /* === Instance Fields === */
 
