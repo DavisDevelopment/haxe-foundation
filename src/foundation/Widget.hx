@@ -91,6 +91,20 @@ class Widget extends EventDispatcher implements Destructible {
 	private inline function get_text() return el.text;
 	private inline function set_text(nt : String) return (el.text = nt);
 
+	/**
+	  * The width of [this] Widget
+	  */
+	public var width(get, set):Float;
+	private inline function get_width() return el.w;
+	private inline function set_width(nw) return (el.w = nw);
+
+	/**
+	  * The height of [this] Widget
+	  */
+	public var height(get, set):Float;
+	private inline function get_height() return el.h;
+	private inline function set_height(nh) return (el.h = nh);
+
 /* === Instance Fields === */
 
 	/* Underlying Element instance */
