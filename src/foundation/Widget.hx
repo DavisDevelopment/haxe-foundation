@@ -1,5 +1,7 @@
 package foundation;
 
+import foundation.Styles;
+
 import tannus.io.EventDispatcher;
 import tannus.io.Signal;
 import tannus.io.Ptr;
@@ -19,6 +21,7 @@ class Widget extends EventDispatcher implements Destructible {
 		super();
 
 		el = null;
+		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
 	}
 
@@ -112,4 +115,7 @@ class Widget extends EventDispatcher implements Destructible {
 	
 	/* Array of Attached Destructibles */
 	private var assets : Array<Destructible>;
+
+	/* A Styles instance which points to [this] Widget */
+	public var styles : Styles;
 }
