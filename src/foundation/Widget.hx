@@ -1,6 +1,7 @@
 package foundation;
 
 import foundation.Styles;
+import foundation.WidgetAsset;
 
 import tannus.io.EventDispatcher;
 import tannus.io.Signal;
@@ -11,11 +12,12 @@ import tannus.ds.Destructible;
 import tannus.math.TMath;
 import tannus.geom.Point;
 import tannus.html.Element;
+import tannus.html.Elementable;
 import tannus.html.Win;
 
 import Std.*;
 
-class Widget extends EventDispatcher implements Destructible {
+class Widget extends EventDispatcher implements WidgetAsset implements Elementable {
 	/* Constructor Function */
 	public function new():Void {
 		super();
@@ -23,6 +25,8 @@ class Widget extends EventDispatcher implements Destructible {
 		el = null;
 		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
+
+		addSignals(['activate']);
 	}
 
 /* === Instance Methods === */
@@ -30,7 +34,7 @@ class Widget extends EventDispatcher implements Destructible {
 	/**
 	  * Add a Destructible Object
 	  */
-	public function attach(asset : Destructible):Void {
+	public function attach(asset : WidgetAsset):Void {
 		assets.push( asset );
 	}
 
@@ -45,6 +49,13 @@ class Widget extends EventDispatcher implements Destructible {
 	}
 
 	/**
+	  * Cast [this] Widget to an Element
+	  */
+	public function toElement():Element {
+		return el;
+	}
+
+	/**
 	  * Engage Foundation library
 	  */
 	private function engage():Void {
@@ -54,15 +65,33 @@ class Widget extends EventDispatcher implements Destructible {
 	}
 
 	/**
+	  * Activate [this] Widget
+	  */
+	public function activate():Void {
+		//- mark [this] Widget as active
+		_active = true;
+		
+		//- activate all attachments
+		for (child in assets) {
+			child.activate();
+		}
+
+		//- finally, dispatch the 'activate' Event
+		dispatch('activate', this);
+	}
+
+	/**
 	  * Append [this] Widget to something
 	  */
 	public function appendTo(parent : Dynamic):Void {
 		if (is(parent, Widget)) {
-			cast(parent, Widget).append( this );
+			var par:Widget = cast parent;
+			par.append( this );
+			par.attach( par );
 		}
 		else {
 			var par:Element = new Element(parent);
-			par.append( el );
+			par.appendElementable( this );
 		}
 	}
 
@@ -71,11 +100,56 @@ class Widget extends EventDispatcher implements Destructible {
 	  */
 	public function append(child : Dynamic):Void {
 		if (is(child, Widget)) {
-			el.append(cast(child, Widget).el);
+			var ch:Widget = cast child;
+			el.appendElementable(cast child);
+			attach( ch );
 		}
 		else {
 			var kid:Element = new Element( child );
 			el.append( kid );
+		}
+	}
+
+/* === Utility Methods === */
+
+	/**
+	  * Add a class to [this] Widget
+	  */
+	private function addClass(name : String):Void {
+		el.addClass( name );
+	}
+
+	/**
+	  * Remove a class from [this] Widget
+	  */
+	private function removeClass(name : String):Void {
+		el.addClass( name );
+	}
+
+	/**
+	  * Toggle the given class on [this] Widget
+	  */
+	private function toggleClass(name : String):Void {
+		el.toggleClass( name );
+	}
+
+	/**
+	  * Obtain an Array of classes applied to [this] Widget
+	  */
+	private inline function classes():Array<String> {
+		return (el['class'].value.split(' '));
+	}
+
+	/**
+	  * Add some metadata to [this] Widget
+	  */
+	public function meta<T>(name:String, ?value:T):Null<T> {
+		if (value == null) {
+			return cast el.data(name);
+		}
+		else {
+			el.data(name, value);
+			return value;
 		}
 	}
 
@@ -114,8 +188,11 @@ class Widget extends EventDispatcher implements Destructible {
 	public var el : Null<Element>;
 	
 	/* Array of Attached Destructibles */
-	private var assets : Array<Destructible>;
+	private var assets : Array<WidgetAsset>;
 
 	/* A Styles instance which points to [this] Widget */
 	public var styles : Styles;
+
+	/* Whether [this] Widget has been activated yet */
+	private var _active:Bool = false;
 }
