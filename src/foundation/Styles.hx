@@ -54,6 +54,29 @@ class Styles {
 	}
 
 	/**
+	  * get/set the padding of [this] Element
+	  */
+	public function padding(?top:Maybe<Float>, ?right:Maybe<Float>, ?bottom:Maybe<Float>, ?left:Maybe<Float>) {
+		var c = css();
+		if (top.exists && right.exists && bottom.exists && left.exists) {
+			c['padding-top'] = (top.value + 'px');
+			c['padding-right'] = (right.value + 'px');
+			c['padding-left'] = (left.value + 'px');
+			c['padding-bottom'] = (bottom.value + 'px');
+		}
+		else if (top.exists) {
+			c['padding'] = (top.value + 'px');
+		}
+
+		return {
+			'top': parseFloat(c['padding-top']),
+			'bottom': parseFloat(c['padding-bottom']),
+			'left': parseFloat(c['padding-left']),
+			'right': parseFloat(c['padding-right'])
+		};
+	}
+
+	/**
 	  * get/set the border of [this] Element
 	  */
 	public function border(?type:Maybe<String>, ?color:Maybe<Color>, ?size:Maybe<Float>) {
@@ -71,6 +94,17 @@ class Styles {
 			'color' : Color.fromString(c['border-color']),
 			'size' : parseFloat(c['border-width'])
 		};
+	}
+
+	/**
+	  * get/set the background-color
+	  */
+	public function backgroundColor(?color : Color):Color {
+		var c = css();
+		if (color != null) {
+			c['background-color'] = string( color );
+		}
+		return Color.fromString(c['background-color']);
 	}
 
 /* === Computed Instance Fields === */
