@@ -68,15 +68,36 @@ class ButtonGroup extends List {
 	  */
 	public inline function roundSides(r : Bool) tfunc(r)('round');
 
+	/**
+	  * Make all Buttons in [this] Group even
+	  */
+	public function even(?num : Int):Void {
+		var all:Array<String> = [for (i in 0...10) 'even-$i'];
+		if (num == null) {
+			for (x in all) el.removeClass( x );
+			el.addClass('even-${items.length}');
+		} else {
+			for (x in all) el.removeClass( x );
+			el.addClass('even-$num');
+		}
+	}
+
+	/**
+	  * Iterate over all the buttons in [this] Group
+	  */
+	public function iterator():Iterator<Button> {
+		return untyped items.iterator();
+	}
+
 /* === Computed Instance Fields === */
 
 	/**
-	  * Whether [this] Group is tiny
+	  * Whether [this] Group is vertical
 	  */
-	public var tiny(get, set):Bool;
-	private inline function get_tiny() return el.is('.tiny');
-	private function set_tiny(t : Bool):Bool {
-		tfunc(t)('tiny');
-		return t;
+	public var vertical(get, set):Bool;
+	private function get_vertical() return el.is('.stack');
+	private function set_vertical(v : Bool):Bool {
+		tfunc(v)('stack');
+		return v;
 	}
 }
