@@ -29,6 +29,10 @@ class Dialog extends Pane {
 		closeButton.on('click', function(x) {
 			dispatch('close', this);
 		});
+		var bg:Element = 'div.reveal-modal-bg';
+		bg.on('click', function(x) {
+			dispatch('close', this);
+		});
 	}
 
 /* === Instance Methods === */
