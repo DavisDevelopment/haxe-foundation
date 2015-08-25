@@ -8,6 +8,8 @@ import tannus.html.ElStyles;
 
 import tannus.graphics.Color;
 
+import foundation.styles.EFloat;
+
 import Std.*;
 
 class Styles {
@@ -105,6 +107,19 @@ class Styles {
 			c['background-color'] = string( color );
 		}
 		return Color.fromString(c['background-color']);
+	}
+
+	/**
+	  * get/set the float
+	  */
+	public function float(?dir : EFloat):EFloat {
+		var c = css();
+		if (dir == null) {
+			return c['float'];
+		}
+		else {
+			return (c['float'] = dir);
+		}
 	}
 
 /* === Computed Instance Fields === */
