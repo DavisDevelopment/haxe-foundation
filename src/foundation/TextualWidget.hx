@@ -3,6 +3,8 @@ package foundation;
 import foundation.Widget;
 import tannus.graphics.Color;
 
+import foundation.styles.TextAlign;
+
 class TextualWidget extends Widget {
 	/* Constructor Function */
 	public function new():Void {
@@ -22,6 +24,18 @@ class TextualWidget extends Widget {
 	private function set_textColor(tc : Color):Color {
 		el.css('color', tc.toString());
 		return textColor;
+	}
+
+	/**
+	  * The 'text-align' property of [this] Element
+	  */
+	public var textAlign(get, set):TextAlign;
+	private inline function get_textAlign():TextAlign {
+		return el.css('text-align');
+	}
+	private inline function set_textAlign(v : TextAlign):TextAlign {
+		el.css('text-align', v);
+		return v;
 	}
 
 	/**
