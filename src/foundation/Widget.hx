@@ -22,11 +22,11 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	public function new():Void {
 		super();
 
+		__checkEvents = false;
+
 		el = null;
 		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
-
-		addSignals(['activate']);
 	}
 
 /* === Instance Methods === */
@@ -56,12 +56,30 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	}
 
 	/**
+	  * Test a CSS-selector against [this]
+	  */
+	public function is(selector : String):Bool {
+		if (el == null) {
+			return false;
+		}
+		else {
+			return el.is( selector );
+		}
+	}
+
+	/**
 	  * Engage Foundation library
 	  */
-	private function engage():Void {
-		untyped {
-			doc.foundation();
-		};
+	private inline function engage():Void {
+		//throw new js.Error('foundation.Widget::engage is deprecated. use foundation.Widget::reflow instead');
+		Foundation.initialize( el );
+	}
+
+	/**
+	  * reset [this] Widget's plugin-data, or let Foundation know it exists
+	  */
+	private inline function reflow():Void {
+		Foundation.reInitializeElement( el );
 	}
 
 	/**
@@ -84,7 +102,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * Append [this] Widget to something
 	  */
 	public function appendTo(parent : Dynamic):Void {
-		if (is(parent, Widget)) {
+		if (Std.is(parent, Widget)) {
 			var par:Widget = cast parent;
 			par.append( this );
 			par.attach( par );
@@ -99,7 +117,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * Append something to [this] Widget
 	  */
 	public function append(child : Dynamic):Void {
-		if (is(child, Widget)) {
+		if (Std.is(child, Widget)) {
 			var ch:Widget = cast child;
 			el.appendElementable(cast child);
 			attach( ch );
@@ -115,21 +133,21 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	/**
 	  * Add a class to [this] Widget
 	  */
-	private function addClass(name : String):Void {
+	public function addClass(name : String):Void {
 		el.addClass( name );
 	}
 
 	/**
 	  * Remove a class from [this] Widget
 	  */
-	private function removeClass(name : String):Void {
+	public function removeClass(name : String):Void {
 		el.addClass( name );
 	}
 
 	/**
 	  * Toggle the given class on [this] Widget
 	  */
-	private function toggleClass(name : String):Void {
+	public function toggleClass(name : String):Void {
 		el.toggleClass( name );
 	}
 
@@ -155,11 +173,13 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 
 /* === Computed Instace Fields === */
 
-	/**
-	  * The Document as an Element
-	  */
+	/* the Document */
+	private var d(get, never):js.html.HTMLDocument;
+	private inline function get_d():js.html.HTMLDocument return Win.current.document;
+	
+	/* the Document as an Element */
 	private var doc(get, never):Element;
-	private inline function get_doc() return new Element(Win.current.document);
+	private inline function get_doc() return new Element( d );
 
 	/**
 	  * The textual content of [this] Widget

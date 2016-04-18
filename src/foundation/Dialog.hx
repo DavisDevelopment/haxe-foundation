@@ -10,29 +10,21 @@ class Dialog extends Pane {
 	/* Constructor Function */
 	public function new():Void {
 		super();
-		addClass('reveal-modal');
-		var id:String = Memory.uniqueIdString('dialog-');
-		var a = el.attributes;
-		a += {
-			'id': id,
-			'data-reveal': 'yes',
-			'aria-hidden': 'true',
-			'role': 'dialog'
-		};
-		closeButton = new Link('', '#');
-		closeButton.el.html('&#215;');
-		closeButton.addClass('close-reveal-modal');
-		closeButton.el.attr('aria-label', 'Close');
-		append( closeButton );
 
-		addSignals(['open', 'close']);
-		closeButton.on('click', function(x) {
-			dispatch('close', this);
-		});
-		var bg:Element = 'div.reveal-modal-bg';
-		bg.on('click', function(x) {
-			dispatch('close', this);
-		});
+		addClass( 'reveal' );
+		el['data-reveal'] = 'yes';
+		el.append(createCloseButton());
+		appendTo( 'body' );
+		activate();
+		engage();
+
+		var fo:String->Void = el.method( 'foundation' );
+		_methods = {
+			open: fo.bind( 'open' ),
+			close: fo.bind( 'close' ),
+			toggle: fo.bind( 'toggle' ),
+			destroy: fo.bind( 'destroy' )
+		};
 	}
 
 /* === Instance Methods === */
@@ -41,14 +33,7 @@ class Dialog extends Pane {
 	  * Open [this] Dialog
 	  */
 	public function open():Void {
-		if (!el.is('html *')) {
-			appendTo('body');
-			activate();
-			engage();
-		}
-		untyped {
-			el.foundation('reveal', 'open');
-		};
+		_methods.open();
 		dispatch('open', this);
 	}
 
@@ -56,10 +41,24 @@ class Dialog extends Pane {
 	  * Close [this] Dialog
 	  */
 	public function close():Void {
-		untyped {
-			el.foundation('reveal', 'close');
-		};
+		_methods.close();
 		dispatch('close', this);
+	}
+
+	/**
+	  * Toggle whether [this] is open
+	  */
+	public function toggle():Void {
+		_methods.toggle();
+	}
+
+	/**
+	  * Create and return the Element used as the close button for [this] Dialog
+	  */
+	private function createCloseButton():Element {
+		var btn:Element = '<button class="close-button" data-close aria-label="Close modal" type="button"></button>';
+		btn.append( '<span aria-hidden="true">&times;</span>' );
+		return btn;
 	}
 
 /* === Computed Instance Fields === */
@@ -97,7 +96,16 @@ class Dialog extends Pane {
 
 	/* Link which user may click to close [this] Dialog */
 	private var closeButton : Link;
+
+	private var _methods : DialogMethods;
 }
+
+private typedef DialogMethods = {
+	function open():Void;
+	function close():Void;
+	function toggle():Void;
+	function destroy():Void;
+};
 
 /**
   * Enum of all possible Dialog sizes
