@@ -15,7 +15,7 @@ class Foundation {
 	  * initialize Foundation on the given Element
 	  */
 	public static inline function initialize(element : Element):Void {
-		element.plugin('foundation' );
+		element.plugin( 'foundation' );
 	}
 
 	/**

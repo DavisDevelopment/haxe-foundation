@@ -72,7 +72,7 @@ class FlexRow extends Row {
 		return function(sizes : Array<Int>):Void {
 			var tups = setters.zip( sizes );
 			for (t in tups) {
-				t._0.set( t._1 );
+				t.left.set( t.right );
 			}
 		};
 	}

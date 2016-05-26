@@ -3,12 +3,14 @@ package foundation;
 import tannus.io.Ptr;
 import tannus.ds.EitherType;
 import tannus.ds.Maybe;
+import tannus.ds.Obj;
 import tannus.html.Element;
 import tannus.html.ElStyles;
 
 import tannus.graphics.Color;
 
 import foundation.styles.EFloat;
+import foundation.styles.Pos;
 
 import Std.*;
 
@@ -119,6 +121,27 @@ class Styles {
 		}
 		else {
 			return (c['float'] = dir);
+		}
+	}
+
+	/**
+	  * get/set position
+	  */
+	public function position(?pos : Pos):Pos {
+		var c = css();
+		if (pos == null) {
+			var tpos:Obj = Obj.fromDynamic(c.gets(['top', 'left', 'bottom', 'right']));
+			trace(tpos.toDyn());
+			tpos.set('type', c['position']);
+			return new Pos(cast tpos.toDyn());
+		}
+		else {
+			c.set('position', pos.type);
+			if (pos.top != null) c.set('top', (pos.top + 'px'));
+			if (pos.left != null) c.set('left', (pos.left + 'px'));
+			if (pos.bottom != null) c.set('bottom', (pos.bottom + 'px'));
+			if (pos.right != null) c.set('right', (pos.right + 'px'));
+			return position();
 		}
 	}
 

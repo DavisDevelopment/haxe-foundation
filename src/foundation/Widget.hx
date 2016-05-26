@@ -1,6 +1,7 @@
 package foundation;
 
 import foundation.Styles;
+import tannus.html.ElStyles;
 import foundation.WidgetAsset;
 
 import tannus.io.EventDispatcher;
@@ -16,6 +17,12 @@ import tannus.html.Elementable;
 import tannus.html.Win;
 
 import Std.*;
+
+using Lambda;
+using tannus.ds.ArrayTools;
+using StringTools;
+using tannus.ds.StringUtils;
+using tannus.math.TMath;
 
 class Widget extends EventDispatcher implements WidgetAsset implements Elementable {
 	/* Constructor Function */
@@ -71,7 +78,6 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * Engage Foundation library
 	  */
 	private inline function engage():Void {
-		//throw new js.Error('foundation.Widget::engage is deprecated. use foundation.Widget::reflow instead');
 		Foundation.initialize( el );
 	}
 
@@ -105,11 +111,12 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		if (Std.is(parent, Widget)) {
 			var par:Widget = cast parent;
 			par.append( this );
-			par.attach( par );
 		}
 		else {
 			var par:Element = new Element(parent);
 			par.appendElementable( this );
+			parentElement = par;
+			parentWidget = null;
 		}
 	}
 
@@ -121,11 +128,66 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 			var ch:Widget = cast child;
 			el.appendElementable(cast child);
 			attach( ch );
+			ch.parentWidget = this;
+			ch.parentElement = el;
 		}
 		else {
 			var kid:Element = new Element( child );
 			el.append( kid );
 		}
+	}
+
+	/**
+	  * Determine whether the given Object is (in some way or another) a 'child' of [this] One
+	  */
+	public function parentOf(child : Dynamic):Bool {
+		if (Std.is(child, Widget)) {
+			var cw:Widget = cast child;
+			return el.contains( cw.el );
+		}
+		else {
+			var ce:Element = new Element( child );
+			return el.contains( ce );
+		}
+	}
+
+	/**
+	  * Determine whether the given Object is the parent of [this] one
+	  */
+	public function childOf(parent : Dynamic):Bool {
+		if (Std.is(parent, Widget))
+			return cast(parent, Widget).parentOf( parent );
+		else
+			return new Element( parent ).contains( el );
+	}
+
+	/**
+	  * Append [child] as a child of [this], and place it at offset [index] in the array
+	  */
+	public function insertAt(child:Dynamic, index:Int):Void {
+		if (!parentOf( child )) {
+			append( child );
+		}
+		if (Std.is(child, Widget)) {
+			el.index(cast(child, Widget).toElement(), index);
+		}
+		else {
+			el.index(new Element( child ).at( 0 ), index);
+		}
+	}
+
+	/**
+	  * Ascend the widget hierarchy until a widget for which [test] returns true is found
+	  */
+	public function parentWidgetUntil<T:Widget>(test : Widget -> Bool):Null<T> {
+		if (parentWidget != null) {
+			var pw = parentWidget;
+			if (test( pw )) {
+				return cast pw;
+			}
+			else return pw.parentWidgetUntil( test );
+		}
+		else return null;
 	}
 
 /* === Utility Methods === */
@@ -136,12 +198,15 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	public function addClass(name : String):Void {
 		el.addClass( name );
 	}
+	public function addClasses(names : Iterable<String>):Void {
+		names.iter( addClass );
+	}
 
 	/**
 	  * Remove a class from [this] Widget
 	  */
 	public function removeClass(name : String):Void {
-		el.addClass( name );
+		el.removeClass( name );
 	}
 
 	/**
@@ -171,6 +236,29 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		}
 	}
 
+	/**
+	  * forward events from the underlying DOM into our event-system
+	  */
+	public function forwardEvent(name:String, ?src:Element, ?trans:Dynamic -> Dynamic):Void {
+		if (src == null) 
+			src = el;
+		if (trans == null) 
+			trans = (function(x) return untyped x);
+		src.on(name, untyped function(raw_event) {
+			var event = trans( raw_event );
+			dispatch(name, event);
+		});
+	}
+
+	/**
+	  * forward an Array of events
+	  */
+	public function forwardEvents<A, B>(names:Array<String>, ?src:Element, ?trans:A->B):Void {
+		for (n in names) {
+			forwardEvent(n, src, trans);
+		}
+	}
+
 /* === Computed Instace Fields === */
 
 	/* the Document */
@@ -185,8 +273,8 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * The textual content of [this] Widget
 	  */
 	public var text(get, set) : String;
-	private inline function get_text() return el.text;
-	private inline function set_text(nt : String) return (el.text = nt);
+	private function get_text() return el.text;
+	private function set_text(nt : String) return (el.text = nt);
 
 	/**
 	  * The width of [this] Widget
@@ -202,6 +290,10 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	private inline function get_height() return el.h;
 	private inline function set_height(nh) return (el.h = nh);
 
+	/* the CSS properties of [this] Widget */
+	public var css(get, never):ElStyles;
+	private inline function get_css():ElStyles return el.style;
+
 /* === Instance Fields === */
 
 	/* Underlying Element instance */
@@ -212,6 +304,10 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 
 	/* A Styles instance which points to [this] Widget */
 	public var styles : Styles;
+
+	/* the parent widget of [this] one */
+	public var parentWidget : Null<Widget> = null;
+	public var parentElement : Null<Element> = null;
 
 	/* Whether [this] Widget has been activated yet */
 	private var _active:Bool = false;

@@ -11,7 +11,7 @@ class List extends Widget {
 		super();
 		var tag:String = (ordered?'ul':'ol');
 		el = '<$tag></$tag>';
-		items = new Array();
+		listItems = new Array();
 	}
 
 /* === Instance Methods === */
@@ -20,32 +20,32 @@ class List extends Widget {
 	  * Add a new List-Item to [this] List
 	  */
 	public function addItem(thing : Dynamic):Void {
-		var li:Element = '<li></li>';
-		if (is(thing, Widget)) {
+		var item = new ListItem( this );
+		if (Std.is(thing, Widget)) {
 			var w:Widget = cast thing;
-			li.append( w.el );
-			items.push( w );
-			attach( w );
+			item.append( w );
+			listItems.push( item );
 		}
 		else {
 			var w:Widget = new Widget();
-			w.el = new Element(thing);
-			li.append( w.el );
-			items.push( w );
-			attach( w );
+			w.el = new Element( thing );
+			item.append( w );
+			listItems.push( item );
 		}
-		append( li );
+
+		append( item );
+		attach( item );
 	}
 
 	/**
 	  * Remove an item from [this] List
 	  */
-	public inline function item<T:Widget>(index : Int):Null<T> {
-		return untyped items[index];
-	}
+	//public inline function item<T:Widget>(index : Int):Null<T> {
+		//return untyped items[ index ];
+	//}
 
 /* === Instance Fields === */
 
 	/* The items of [this] list */
-	private var items:Array<Widget>;
+	private var listItems:Array<Widget>;
 }
