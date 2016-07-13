@@ -16,7 +16,12 @@ class TextInput extends DOMInput<String> {
 	public function new():Void {
 		super();
 
-		// el = '<input></input>';
 		ntype = 'text';
+
+		forwardEvents(['input', 'keypress', 'keydown', 'keyup'], el, tannus.events.KeyboardEvent.fromJqEvent);
 	}
+
+	public var placeholder(get, set):String;
+	private inline function get_placeholder():String return (el['placeholder'].or(''));
+	private inline function set_placeholder(v : String):String return (el['placeholder'] = v);
 }
