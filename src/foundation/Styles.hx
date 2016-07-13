@@ -10,7 +10,7 @@ import tannus.html.ElStyles;
 import tannus.graphics.Color;
 
 import foundation.styles.EFloat;
-import foundation.styles.Pos;
+import foundation.styles.*;
 
 import Std.*;
 
@@ -143,6 +143,13 @@ class Styles {
 			if (pos.right != null) c.set('right', (pos.right + 'px'));
 			return position();
 		}
+	}
+
+	/**
+	  * set the display
+	  */
+	public function display(d : Display):Void {
+		css().set('display', d);
 	}
 
 /* === Computed Instance Fields === */
