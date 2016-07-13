@@ -1,10 +1,13 @@
 package foundation;
 
 import tannus.ds.Delta;
+import tannus.io.Signal;
 
 import tannus.html.Element;
 import js.html.SelectElement;
 import js.html.OptionElement;
+
+import haxe.Constraints.FlatEnum;
 
 using Lambda;
 using tannus.ds.ArrayTools;
@@ -14,10 +17,9 @@ class Select<T> extends Input<T> {
 	public function new():Void {
 		super();
 
-		el = '<label></label>';
-		se = '<select></select>';
-		el.append( se );
+		el = '<select></select>';
 		options = new Array();
+		onchange = new Signal();
 		
 		__listen();
 	}
@@ -26,7 +28,7 @@ class Select<T> extends Input<T> {
 
 	/* attach the given Option to [this] */
 	public function addOption(o : Option<T>):Option<T> {
-		se.append( o.el );
+		append( o );
 		options.push( o );
 		return o;
 	}
@@ -48,38 +50,85 @@ class Select<T> extends Input<T> {
 
 	/* set the current value of [this] */
 	override public function setValue(v : T):Void {
-		null;
+		for (o in options) {
+			if (o.value == v) {
+				selectedOption = o;
+			}
+		}
 	}
 
 	/* listen for incoming events */
 	private function __listen():Void {
 		var prev:Null<T> = null;
 		
-		se.on('change', function(event : Dynamic):Void {
+		el.on('change', function(event : Dynamic):Void {
 			var curr = getValue();
 			var change:Delta<T> = new Delta(curr, prev);
 			prev = curr;
 			dispatch('change', change);
 		});
+
+		on('change', onchange.call.bind(_));
+	}
+
+	/* apply and modify label */
+	public function label(txt:String, ?options:Label.LabelOptions):Void {
+		if (_label == null) {
+			_label = new Label();
+			_label.applyOptions( options );
+			_label.link( this );
+		}
+		_label.text = txt;
 	}
 
 /* === Computed Instance Fields === */
 
 	/* the Option which is currently selected */
-	public var selectedOption(get, never):Option<T>;
+	public var selectedOption(get, set):Option<T>;
 	private inline function get_selectedOption():Option<T> return options[s.selectedIndex];
+	private function set_selectedOption(v : Option<T>):Option<T> {
+		s.selectedIndex = options.indexOf( v );
+		return selectedOption;
+	}
 
 	/* [s] as it's underlying type */
 	public var s(get, never):SelectElement;
-	private inline function get_s():SelectElement return cast se.at( 0 );
+	private inline function get_s():SelectElement return cast el.at( 0 );
 
 /* === Instance Fields === */
 
-	/* the <select> element */
-	private var se : Element;
-	
 	/* the Options attached to [this] */
 	private var options : Array<Option<T>>;
+
+	/* the Signal fired when the value of [this] changes */
+	public var onchange : Signal<Delta<T>>;
+
+	private var _label : Null<Label> = null;
+
+/* === Static Methods === */
+
+	/**
+	  * Create a Select from two arrays of values
+	  */
+	public static function fromArray<T>(values:Array<T>, ?nameof:T->String):Select<T> {
+		if (nameof == null) nameof = Std.string;
+		var sel:Select<T> = new Select();
+		for (v in values) {
+			sel.option(nameof( v ), v);
+		}
+		return sel;
+	}
+
+	/**
+	  * Create a Select from a Map
+	  */
+	public static function fromMap<T>(map : Map<String, T>):Select<T> {
+		var sel:Select<T> = new Select();
+		for (name in map.keys()) {
+			sel.option(name, map.get( name ));
+		}
+		return sel;
+	}
 }
 
 class Option<T> extends Widget {
