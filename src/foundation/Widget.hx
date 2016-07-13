@@ -17,6 +17,11 @@ import tannus.html.Elementable;
 import tannus.html.Win;
 
 import Std.*;
+import Std.is in istype;
+import Math.*;
+import tannus.math.TMath.*;
+import tannus.internal.TypeTools;
+import tannus.internal.CompileTime in Ct;
 
 using Lambda;
 using tannus.ds.ArrayTools;
@@ -34,6 +39,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		el = null;
 		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
+		uid = ('wi-' + Memory.allocRandomId( 6 ));
 	}
 
 /* === Instance Methods === */
@@ -96,12 +102,16 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		_active = true;
 		
 		//- activate all attachments
-		for (child in assets) {
-			child.activate();
+		for (e in new Element(toElement().children()).toArray()) {
+			var w:Widget = e.data( DATAKEY );
+			if (w != null && !w._active) {
+				w.activate();
+			}
 		}
 
 		//- finally, dispatch the 'activate' Event
 		dispatch('activate', this);
+		trace( 'anal monkey' );
 	}
 
 	/**
@@ -113,28 +123,82 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 			par.append( this );
 		}
 		else {
-			var par:Element = new Element(parent);
+			var par:Element = new Element( parent );
 			par.appendElementable( this );
 			parentElement = par;
 			parentWidget = null;
 		}
+
+		__ac();
 	}
 
 	/**
 	  * Append something to [this] Widget
 	  */
 	public function append(child : Dynamic):Void {
-		if (Std.is(child, Widget)) {
-			var ch:Widget = cast child;
-			el.appendElementable(cast child);
-			attach( ch );
-			ch.parentWidget = this;
-			ch.parentElement = el;
+		_attach(child, function(l, r) l.append( r ));
+	}
+
+	/**
+	  * Prepend something to [this] Widget
+	  */
+	public function prepend(child : Dynamic):Void {
+		_attach(child, function(l, r) l.prepend( r ));
+	}
+
+	/**
+	  * Insert [child] after [this]
+	  */
+	public function after(tail : Dynamic):Void {
+		_attach(tail, function(l, r) l.after( r ));
+	}
+
+	/**
+	  * Insert [child] before [this]
+	  */
+	public function before(head : Dynamic):Void {
+		_attach(head, function(l, r) l.before( r ));
+	}
+
+	/**
+	  * Attach the given object to [this] Widget, as a child
+	  */
+	private function _attach(child:Dynamic, attacher:Attacher):Void {
+		if (istype(child, Widget)) {
+			_attachWidget(cast child, attacher);
 		}
 		else {
-			var kid:Element = new Element( child );
-			el.append( kid );
+			var ch:Element = new Element( child );
+			var hwd:Null<Dynamic> = ch.data( DATAKEY );
+
+			if (hwd != null && istype(hwd, Widget)) {
+				_attachWidget(cast hwd, attacher);
+			}
+			else {
+				_attachElement(ch, attacher);
+			}
 		}
+		__ac();
+	}
+
+	/**
+	  * attach a Widget to [this]
+	  */
+	private function _attachWidget(child:Widget, attacher:Attacher):Void {
+		attacher(toElement(), child.toElement());
+		attach( child );
+		child.parentWidget = this;
+		child.parentElement = toElement();
+		if ( _active ) {
+			child.activate();
+		}
+	}
+
+	/**
+	  * attach an Element to [this]
+	  */
+	private function _attachElement(child:Element, attacher:Attacher):Void {
+		attacher(toElement(), child);
 	}
 
 	/**
@@ -177,6 +241,30 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	}
 
 	/**
+	  * Replace [child] with [repl]
+	  */
+	public function replaceChild(child:Widget, repl:Dynamic):Void {
+		if (parentOf( child )) {
+			if (Std.is(repl, Widget)) {
+				var rw:Widget = repl;
+				child.el.replaceWith( rw.el );
+			}
+			else {
+				child.el.replaceWith(new Element( repl ));
+			}
+		}
+	}
+
+	/**
+	  * Replace [this] with [repl]
+	  */
+	public inline function replaceWith(repl : Dynamic):Void {
+		if (parentWidget != null) {
+			parentWidget.replaceChild(this, repl);
+		}
+	}
+
+	/**
 	  * Ascend the widget hierarchy until a widget for which [test] returns true is found
 	  */
 	public function parentWidgetUntil<T:Widget>(test : Widget -> Bool):Null<T> {
@@ -188,6 +276,18 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 			else return pw.parentWidgetUntil( test );
 		}
 		else return null;
+	}
+
+	/**
+	  * Ascend the Element hierarchy until a match is found
+	  */
+	public function parentElementUntil(test : Element -> Bool):Null<Element> {
+		var t:Element = el.parent();
+		while (t.length > 0) {
+			if (test( t )) return t;
+			t = t.parent();
+		}
+		return null;
 	}
 
 /* === Utility Methods === */
@@ -259,6 +359,35 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		}
 	}
 
+	/**
+	  * wait for [this] to be activated
+	  */
+	private inline function onactivate(f : Void->Void):Void {
+		if ( _active ) {
+			Win.current.requestAnimationFrame(untyped f);
+		}
+		else {
+			once('activated', untyped f);
+		}
+	}
+
+	/**
+	  * bind an Element to [this]
+	  */
+	private function __bindElement(e : Element):Void {
+		e.data(DATAKEY, this);
+		e['id'] = uid;
+	}
+
+	/**
+	  * respond to changes to the DOM by activating stuff
+	  */
+	private function __ac():Void {
+		if (el.containedBy('html') && !_active) {
+			activate();
+		}
+	}
+
 /* === Computed Instace Fields === */
 
 	/* the Document */
@@ -294,11 +423,29 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	public var css(get, never):ElStyles;
 	private inline function get_css():ElStyles return el.style;
 
+	/* Underlying Element instance */
+	public var el(default, set): Null<Element>;
+	private function set_el(v : Null<Element>):Null<Element> {
+		var ee = el;
+		el = v;
+		if (el != null && el != ee) {
+			__bindElement( el );
+		}
+		return el;
+	}
+
+	/* the unique identifier for [this] Widget */
+	public var uid(default, set): String;
+	private function set_uid(v : String):String {
+		uid = v;
+		if (el != null) {
+			el['id'] = uid;
+		}
+		return uid;
+	}
+
 /* === Instance Fields === */
 
-	/* Underlying Element instance */
-	public var el : Null<Element>;
-	
 	/* Array of Attached Destructibles */
 	private var assets : Array<WidgetAsset>;
 
@@ -311,4 +458,10 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 
 	/* Whether [this] Widget has been activated yet */
 	private var _active:Bool = false;
+
+/* === Static Fields === */
+
+	public static inline var DATAKEY:String = '__hfWidget__';
 }
+
+typedef Attacher = Element->Element->Void;
