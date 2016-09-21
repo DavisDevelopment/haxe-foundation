@@ -10,8 +10,9 @@ import tannus.io.Ptr;
 import tannus.ds.Memory;
 import tannus.ds.Object;
 import tannus.ds.Destructible;
+import tannus.ds.Maybe;
 import tannus.math.TMath;
-import tannus.geom.Point;
+import tannus.geom.*;
 import tannus.html.Element;
 import tannus.html.Elementable;
 import tannus.html.Win;
@@ -22,12 +23,14 @@ import Math.*;
 import tannus.math.TMath.*;
 import tannus.internal.TypeTools;
 import tannus.internal.CompileTime in Ct;
+import foundation.Tools.*;
 
 using Lambda;
 using tannus.ds.ArrayTools;
 using StringTools;
 using tannus.ds.StringUtils;
 using tannus.math.TMath;
+//using foundation.Tools;
 
 class Widget extends EventDispatcher implements WidgetAsset implements Elementable {
 	/* Constructor Function */
@@ -40,6 +43,8 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
 		uid = ('wi-' + Memory.allocRandomId( 6 ));
+
+		//__ibuild();
 	}
 
 /* === Instance Methods === */
@@ -103,15 +108,42 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		
 		//- activate all attachments
 		for (e in new Element(toElement().children()).toArray()) {
-			var w:Widget = e.data( DATAKEY );
-			if (w != null && !w._active) {
-				w.activate();
+			try {
+				var w:Widget = e.data( DATAKEY );
+				if (w != null && !w._active) {
+					w.activate();
+				}
+			}
+			catch (error : Dynamic) {
+				printError( error );
 			}
 		}
 
 		//- finally, dispatch the 'activate' Event
 		dispatch('activate', this);
-		trace( 'anal monkey' );
+	}
+
+	/**
+	  * Construct the layout/children of [this] Widget
+	  */
+	public function build():Void {
+		__ibuild();
+	}
+
+	/**
+	  * Populate [this] Widget with content
+	  */
+	private function populate():Void {
+		null;
+	}
+
+	/**
+	  * Internal method used to initiate the construction of [this] Widget
+	  */
+	private function __ibuild():Void {
+		populate();
+		_built = true;
+		dispatch('build', this);
 	}
 
 	/**
@@ -129,6 +161,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 			parentWidget = null;
 		}
 
+		//defer( __ac );
 		__ac();
 	}
 
@@ -169,7 +202,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		}
 		else {
 			var ch:Element = new Element( child );
-			var hwd:Null<Dynamic> = ch.data( DATAKEY );
+			var hwd:Null<Dynamic> = elementWidget( ch );
 
 			if (hwd != null && istype(hwd, Widget)) {
 				_attachWidget(cast hwd, attacher);
@@ -178,6 +211,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 				_attachElement(ch, attacher);
 			}
 		}
+		//defer( __ac );
 		__ac();
 	}
 
@@ -265,6 +299,25 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	}
 
 	/**
+	  * animate [this] Widget
+	  */
+	public function animate(properties:Object, options:AnimateOptions):Void {
+		var o = options;
+		(untyped el.animate)(properties, {
+			duration: o.duration,
+			easing: o.easing,
+			queue: o.queue,
+			step: (function(now:Float, tween:Dynamic) if ( o.step.exists ) o.step.value( now )),
+			complete: (function() if ( o.complete.exists ) o.complete.value()),
+			progress: function(anim:Dynamic, progress:Float, remaining:Float):Void {
+				if ( o.progress.exists ) {
+					o.progress.value(progress, remaining);
+				}
+			}
+		});
+	}
+
+	/**
 	  * Ascend the widget hierarchy until a widget for which [test] returns true is found
 	  */
 	public function parentWidgetUntil<T:Widget>(test : Widget -> Bool):Null<T> {
@@ -288,6 +341,52 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 			t = t.parent();
 		}
 		return null;
+	}
+
+	/**
+	  * define the position and area of [this]
+	  */
+	public function rect(?r : Rectangle):Rectangle {
+		if (r == null) {
+			var rr = el.at( 0 ).getBoundingClientRect();
+			return new Rectangle(rr.left, rr.top, rr.width, rr.height);
+		}
+		else {
+			pos( r.position );
+			scp_float('width', r.w);
+			scp_float('height', r.h);
+			return rect();
+		}
+	}
+
+	/**
+	  * position [this]
+	  */
+	public function pos(?p : Point):Point {
+		if (p == null) {
+			var r = el.at( 0 ).getBoundingClientRect();
+			return new Point(r.left, r.top);
+		}
+		else {
+			css.write({
+				'left': (p.x + 'px'),
+				'top': (p.y + 'px')
+			});
+			return pos();
+		}
+	}
+
+	private inline function get_css_property(name : String):Maybe<String> return css.get( name );
+	private inline function gcp(n : String):Maybe<String> return get_css_property( n );
+	private inline function gcp_float(n:String):Maybe<Float> return gcp( n ).ternary(Std.parseFloat( _ ), null);
+	private inline function gcp_int(n:String):Maybe<Int> return gcp( n ).ternary(Std.parseInt(_), null);
+	private inline function set_css_property(name:String, value:String):String return css.set(name, value);
+	private inline function scp(n:String, v:String):String return set_css_property(n, v);
+	private inline function scp_float(n:String, v:Float, unit:String='px'):Float {
+		return parseFloat(scp(n, (v + unit)));
+	}
+	private inline function scp_int(n:String, v:Int, unit:String='px'):Int {
+		return parseInt(scp(n, (v + unit)));
 	}
 
 /* === Utility Methods === */
@@ -320,7 +419,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * Obtain an Array of classes applied to [this] Widget
 	  */
 	private inline function classes():Array<String> {
-		return (el['class'].value.split(' '));
+		return (el['class'].ternary(_.split(' '), new Array()));
 	}
 
 	/**
@@ -351,6 +450,17 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	}
 
 	/**
+	  * unbind an event on the underlying DOM from our event-system
+	  */
+	public function unforwardEvent(name:String, ?src:Element):Void {
+		if (src == null) {
+			src = el;
+		}
+
+		src.unbind( name );
+	}
+
+	/**
 	  * forward an Array of events
 	  */
 	public function forwardEvents<A, B>(names:Array<String>, ?src:Element, ?trans:A->B):Void {
@@ -375,15 +485,38 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * bind an Element to [this]
 	  */
 	private function __bindElement(e : Element):Void {
-		e.data(DATAKEY, this);
-		e['id'] = uid;
+		e.edata.set(DATAKEY.toCamelCase(), this);
+		if (!e.attributes.exists('id'))
+			e['id'] = uid;
+	}
+
+	/**
+	  * obtain a reference to the Widget attached to the given Element
+	  */
+	private inline function elementWidget(e : Element):Null<Widget> {
+		return e.edata.get(DATAKEY.toCamelCase());
+	}
+
+	private function nearestWidget(ee : Element):Null<Widget> {
+		var e:Null<Element> = ee;
+		while (e != null) {
+			var ew = elementWidget( e );
+			if (ew != null) {
+				return ew;
+			}
+			else {
+				e = e.parent();
+				continue;
+			}
+		}
+		return null;
 	}
 
 	/**
 	  * respond to changes to the DOM by activating stuff
 	  */
 	private function __ac():Void {
-		if (el.containedBy('html') && !_active) {
+		if (el.containedBy( 'html' ) && !_active) {
 			activate();
 		}
 	}
@@ -409,15 +542,15 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * The width of [this] Widget
 	  */
 	public var width(get, set):Float;
-	private inline function get_width() return el.w;
-	private inline function set_width(nw) return (el.w = nw);
+	private function get_width() return el.w;
+	private function set_width(nw) return (el.w = nw);
 
 	/**
 	  * The height of [this] Widget
 	  */
 	public var height(get, set):Float;
-	private inline function get_height() return el.h;
-	private inline function set_height(nh) return (el.h = nh);
+	private function get_height() return el.h;
+	private function set_height(nh) return (el.h = nh);
 
 	/* the CSS properties of [this] Widget */
 	public var css(get, never):ElStyles;
@@ -428,9 +561,11 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	private function set_el(v : Null<Element>):Null<Element> {
 		var ee = el;
 		el = v;
+		/*
 		if (el != null && el != ee) {
 			__bindElement( el );
 		}
+		*/
 		return el;
 	}
 
@@ -458,10 +593,20 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 
 	/* Whether [this] Widget has been activated yet */
 	private var _active:Bool = false;
+	/* whether [this] Widget has been built yet */
+	private var _built:Bool = false;
 
 /* === Static Fields === */
 
-	public static inline var DATAKEY:String = '__hfWidget__';
+	public static inline var DATAKEY:String = 'haxe-foundation-widget';
 }
 
 typedef Attacher = Element->Element->Void;
+typedef AnimateOptions = {
+	?duration : Float,
+	?easing: String,
+	?queue: Bool,
+	?step: Maybe<Float -> Void>,
+	?progress: Maybe<Float -> Float -> Void>,
+	?complete: Maybe<Void -> Void>
+};

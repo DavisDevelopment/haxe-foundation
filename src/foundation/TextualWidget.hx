@@ -49,4 +49,22 @@ class TextualWidget extends Widget {
 		el.css('font-family', nf);
 		return fontFamily;
 	}
+
+	public var fontSize(get, set):String;
+	private function get_fontSize():String {
+		return el.css('font-size');
+	}
+	private function set_fontSize(nf : String):String {
+		el.css('font-size', nf);
+		return fontSize;
+	}
+
+	public var lineHeight(get, set):String;
+	private function get_lineHeight():String {
+		return el.css('line-height');
+	}
+	private function set_lineHeight(nf : String):String {
+		el.css('line-height', nf);
+		return lineHeight;
+	}
 }

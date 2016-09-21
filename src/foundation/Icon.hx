@@ -7,7 +7,7 @@ using tannus.ds.StringUtils;
 using Lambda;
 using tannus.ds.ArrayTools;
 
-class Icon extends Widget {
+class Icon extends TextualWidget {
 	/* Constructor Function */
 	public function new(?type : IconType):Void {
 		super();

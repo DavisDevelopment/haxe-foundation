@@ -20,6 +20,16 @@ class ButtonGroup extends Pane {
 
 /* === Instance Methods === */
 
+	/**
+	  * Attach an Object to [this]
+	  */
+	override private function _attach(child:Dynamic, attacher:Widget.Attacher):Void {
+		super._attach(child, attacher);
+		if (Std.is(child, Button)) {
+			buttons.push(cast child);
+		}
+	}
+
 	/*
 	   "class switch"
 	   @param [name]
@@ -35,4 +45,8 @@ class ButtonGroup extends Pane {
 	public inline function small(?v : Bool):Bool return cs('small', v);
 	public inline function large(?v : Bool):Bool return cs('large', v);
 	public inline function expand(?v : Bool):Bool return cs('expanded', v);
+
+/* === Instance Fields === */
+
+	public var buttons : Array<Button>;
 }

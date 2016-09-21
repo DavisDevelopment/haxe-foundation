@@ -36,6 +36,10 @@ class Foundation {
 		l.reInit( e );
 	}
 
+	public static inline function pluginInstance(pluginName:String, args:Array<Dynamic>):Dynamic {
+		return Type.createInstance(l.getProperty( pluginName ), args);
+	}
+
 	public static function plugin<T>(name : String):Null<FoundationPlugin<T>> {
 		var pc:Null<Dynamic> = l.getProperty( name );
 		if (pc != null) {

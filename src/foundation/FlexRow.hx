@@ -14,11 +14,12 @@ using tannus.math.TMath;
 
 class FlexRow extends Row {
 	/* Constructor Function */
-	public function new(cols : Array<Int>):Void {
+	public function new(cols:Array<Int>, autoBuild:Bool=true):Void {
 		super();
 		
 		el.css('max-width', '100%');
-		__buildPanes( cols );
+		if ( autoBuild )
+			__buildPanes( cols );
 
 		on('activate', function(x) {
 			engage();
