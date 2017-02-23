@@ -25,6 +25,9 @@ import tannus.internal.TypeTools;
 import tannus.internal.CompileTime in Ct;
 import foundation.Tools.*;
 
+import haxe.rtti.Meta;
+import tannus.ds.Obj;
+
 using Lambda;
 using tannus.ds.ArrayTools;
 using StringTools;
@@ -42,9 +45,11 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 		el = null;
 		styles = new Styles(Ptr.create( el ));
 		assets = new Array();
+		children = new Array();
 		uid = ('wi-' + Memory.allocRandomId( 6 ));
 
 		//__ibuild();
+		bindMetadataEventHandlers( this );
 	}
 
 /* === Instance Methods === */
@@ -60,10 +65,23 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	  * Destroy [this] Widget
 	  */
 	public function destroy():Void {
-		for (x in assets)
-			x.destroy();
+		for (x in assets) {
+			if (Std.is(x, Widget) && cast(x, Widget).childOf( this )) {
+				x.destroy();
+			}
+			else if (!Std.is(x, Widget)) {
+				x.destroy();
+			}
+		}
 		if (el != null)
 			el.remove();
+	}
+
+	/**
+	  * Detach [this] Widget from the DOM
+	  */
+	public function detach():Void {
+		toElement().detach();
 	}
 
 	/**
@@ -583,6 +601,7 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 
 	/* Array of Attached Destructibles */
 	private var assets : Array<WidgetAsset>;
+	private var children : Array<Widget>;
 
 	/* A Styles instance which points to [this] Widget */
 	public var styles : Styles;
@@ -595,6 +614,27 @@ class Widget extends EventDispatcher implements WidgetAsset implements Elementab
 	private var _active:Bool = false;
 	/* whether [this] Widget has been built yet */
 	private var _built:Bool = false;
+
+/* === Static Methods === */
+
+	/**
+	  * bind event-handlers specified via metadata
+	  */
+	private static function bindMetadataEventHandlers(w : Widget):Void {
+		var meta:Obj = Obj.fromDynamic(Meta.getFields(Type.getClass( w )));
+		var binders:Array<String> = ['on', 'once'];
+		var wo:Obj = Obj.fromDynamic( w );
+
+		for (name in meta.keys()) {
+			var data:Obj = Obj.fromDynamic(meta.get( name ));
+			for (key in data.keys()) {
+				var params:Array<Dynamic> = data[key];
+				if (binders.has( key )) {
+					wo.call(key, untyped [Std.string(params[0]), wo.get( name )]);
+				}
+			}
+		}
+	}
 
 /* === Static Fields === */
 

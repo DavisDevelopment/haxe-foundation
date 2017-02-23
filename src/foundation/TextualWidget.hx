@@ -34,7 +34,7 @@ class TextualWidget extends Widget {
 		return el.css('text-align');
 	}
 	private inline function set_textAlign(v : TextAlign):TextAlign {
-		el.css('text-align', v);
+		el.css('text-align', untyped v);
 		return v;
 	}
 

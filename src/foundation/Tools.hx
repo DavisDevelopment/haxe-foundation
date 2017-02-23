@@ -2,7 +2,6 @@ package foundation;
 
 import Std.*;
 import Std.is in istype;
-import Math.*;
 import tannus.math.TMath.*;
 import tannus.internal.TypeTools;
 import tannus.internal.CompileTime in Ct;
